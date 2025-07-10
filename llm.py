@@ -4,22 +4,25 @@ import asyncio
 
 API_KEY = config.GEMINI_API_KEY
 
-BASE_URL = "https://gemini.api.url/v1/chat/completions"  # Заміни на актуальний URL Gemini API
+BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + API_KEY
 
 async def get_llm_response(prompt: str) -> str:
     headers = {
-        "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
     }
     json_data = {
-        "model": "gemini-1.5-turbo",
-        "messages": [{"role": "user", "content": prompt}]
+        "contents": [
+            {
+                "parts": [{"text": prompt}]
+            }
+        ]
     }
+
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(BASE_URL, json=json_data, headers=headers)
             response.raise_for_status()
             data = response.json()
-            return data["choices"][0]["message"]["content"]
+            return data["candidates"][0]["content"]["parts"][0]["text"]
         except Exception as e:
             return f"⚠️ Помилка Gemini API: {e}"
