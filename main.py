@@ -1,10 +1,7 @@
 import asyncio
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.enums import ParseMode
+from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
 from llm import get_llm_response
 from database import (
     init_db, save_fact, get_fact, delete_fact,
@@ -14,46 +11,53 @@ from database import (
 from utils import parse_fact_command, parse_reminder_command
 import config
 
-bot = Bot(token=config.TELEGRAM_TOKEN, parse_mode=ParseMode.MARKDOWN)
+bot = Bot(token=config.TELEGRAM_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
-
 @dp.message(CommandStart())
-async def start(message: Message):
+async def start(message: types.Message):
     await message.answer("👋 Привіт! Я твій персональний асистент. Напиши /help, щоб дізнатися, що я вмію.")
 
-
 @dp.message(Command("help"))
-async def help_cmd(message: Message):
+async def help_cmd(message: types.Message):
     await message.answer(
-        "🧠 Я вмію:\n"
-        "• Відповідати на питання\n"
-        "• Запам’ятовувати факти\n"
-        "• Нагадувати про важливе\n\n"
-        "💬 Спробуй:\n"
-        "• Запам’ятай, моє ім’я — Дмитро\n"
-        "• Нагадай купити молоко о 18:00\n"
-        "• Що ти знаєш про моє ім’я?\n"
-        "• /нагадування — список\n"
+        "🧠 Я вмію:
+"
+        "• Відповідати на питання
+"
+        "• Запам’ятовувати факти
+"
+        "• Нагадувати про важливе
+
+"
+        "💬 Спробуй:
+"
+        "• Запам’ятай, моє ім’я — Дмитро
+"
+        "• Нагадай купити молоко о 18:00
+"
+        "• Що ти знаєш про моє ім’я?
+"
+        "• /нагадування — список
+"
         "• /видалити_нагадування [текст] — видалити"
     )
 
-
 @dp.message(Command("нагадування"))
-async def list_reminders(message: Message):
+async def list_reminders(message: types.Message):
     uid = message.from_user.id
     reminders = await get_user_reminders(uid)
     if reminders:
-        reply = "🔔 Твої нагадування:\n" + "\n".join(
+        reply = "🔔 Твої нагадування:
+" + "\n".join(
             [f"• {r[1]} — {r[2].strftime('%Y-%m-%d %H:%M')}" for r in reminders])
     else:
         reply = "📭 У тебе немає активних нагадувань."
     await message.answer(reply)
 
-
 @dp.message(Command("видалити_нагадування"))
-async def delete_reminder(message: Message):
+async def delete_reminder(message: types.Message):
     uid = message.from_user.id
     args = message.text.split(maxsplit=1)
     if len(args) == 2:
@@ -65,9 +69,8 @@ async def delete_reminder(message: Message):
     else:
         await message.answer("❗ Приклад: /видалити_нагадування купити молоко")
 
-
-@dp.message(F.text)
-async def handle_message(message: Message):
+@dp.message()
+async def handle_message(message: types.Message):
     text = message.text.lower()
     uid = message.from_user.id
 
@@ -90,7 +93,7 @@ async def handle_message(message: Message):
         await message.answer(f"🗑️ Забув про '{key}'.")
 
     elif text.startswith("нагадай"):
-        rem = parse_reminder_command(message.text, uid)
+        rem = await parse_reminder_command(message.text, uid)
         if rem:
             await save_reminder(*rem)
             await message.answer("⏰ Нагадування збережено!")
@@ -101,7 +104,6 @@ async def handle_message(message: Message):
         reply = await get_llm_response(message.text)
         await message.answer(reply)
 
-
 async def notify_reminders():
     due = await get_due_reminders()
     for uid, text in due:
@@ -110,13 +112,11 @@ async def notify_reminders():
         except:
             pass
 
-
 async def main():
     await init_db()
     scheduler.add_job(notify_reminders, 'interval', minutes=1)
     scheduler.start()
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())

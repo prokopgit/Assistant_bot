@@ -3,7 +3,7 @@ import httpx
 import asyncio
 
 API_KEY = config.GEMINI_API_KEY
-MODEL = "models/gemini-1.5-flash"  # або "models/gemini-pro"
+MODEL = "models/gemini-1.5-flash"
 BASE_URL = f"https://generativelanguage.googleapis.com/v1beta/{MODEL}:generateContent?key={API_KEY}"
 
 async def get_llm_response(prompt: str) -> str:
