@@ -1,14 +1,25 @@
-import openai
 import config
+import httpx
+import asyncio
 
-openai.api_key = config.OPENAI_API_KEY
+API_KEY = config.GEMINI_API_KEY
+
+BASE_URL = "https://gemini.api.url/v1/chat/completions"  # Заміни на актуальний URL Gemini API
 
 async def get_llm_response(prompt: str) -> str:
-    try:
-        response = await openai.ChatCompletion.acreate(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"⚠️ Сталася помилка: {e}"
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    json_data = {
+        "model": "gemini-1.5-turbo",
+        "messages": [{"role": "user", "content": prompt}]
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(BASE_URL, json=json_data, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+        except Exception as e:
+            return f"⚠️ Помилка Gemini API: {e}"
