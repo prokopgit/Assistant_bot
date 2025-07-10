@@ -1,3 +1,4 @@
 aiogram==3.5.1
-python-dotenv
-aiohttp
+apscheduler==3.10.4
+asyncpg==0.29.0
+openai==1.30.1
