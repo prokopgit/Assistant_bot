@@ -3,8 +3,8 @@ import httpx
 import asyncio
 
 API_KEY = config.GEMINI_API_KEY
-
-BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + API_KEY
+MODEL = "models/gemini-1.5-flash"  # або "models/gemini-pro"
+BASE_URL = f"https://generativelanguage.googleapis.com/v1beta/{MODEL}:generateContent?key={API_KEY}"
 
 async def get_llm_response(prompt: str) -> str:
     headers = {
@@ -20,7 +20,7 @@ async def get_llm_response(prompt: str) -> str:
 
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(BASE_URL, json=json_data, headers=headers)
+            response = await client.post(BASE_URL, headers=headers, json=json_data)
             response.raise_for_status()
             data = response.json()
             return data["candidates"][0]["content"]["parts"][0]["text"]
