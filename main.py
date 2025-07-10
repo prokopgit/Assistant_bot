@@ -90,7 +90,7 @@ async def handle_message(message: Message):
         await message.answer(f"🗑️ Забув про '{key}'.")
 
     elif text.startswith("нагадай"):
-        rem = await parse_reminder_command(message.text, uid)
+        rem = parse_reminder_command(message.text, uid)
         if rem:
             await save_reminder(*rem)
             await message.answer("⏰ Нагадування збережено!")
