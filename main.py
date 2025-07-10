@@ -1,8 +1,10 @@
 import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import ParseMode
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
+from aiogram.types import Message
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 from llm import get_llm_response
 from database import (
     init_db, save_fact, get_fact, delete_fact,
@@ -12,16 +14,18 @@ from database import (
 from utils import parse_fact_command, parse_reminder_command
 import config
 
-bot = Bot(token=config.TELEGRAM_TOKEN)
+bot = Bot(token=config.TELEGRAM_TOKEN, parse_mode=ParseMode.MARKDOWN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
 
+
 @dp.message(CommandStart())
-async def start(message: types.Message):
+async def start(message: Message):
     await message.answer("👋 Привіт! Я твій персональний асистент. Напиши /help, щоб дізнатися, що я вмію.")
 
+
 @dp.message(Command("help"))
-async def help_cmd(message: types.Message):
+async def help_cmd(message: Message):
     await message.answer(
         "🧠 Я вмію:\n"
         "• Відповідати на питання\n"
@@ -35,18 +39,21 @@ async def help_cmd(message: types.Message):
         "• /видалити_нагадування [текст] — видалити"
     )
 
+
 @dp.message(Command("нагадування"))
-async def list_reminders(message: types.Message):
+async def list_reminders(message: Message):
     uid = message.from_user.id
     reminders = await get_user_reminders(uid)
     if reminders:
-        reply = "🔔 Твої нагадування:\n" + "\n".join([f"• {r[1]} — {r[2].strftime('%Y-%m-%d %H:%M')}" for r in reminders])
+        reply = "🔔 Твої нагадування:\n" + "\n".join(
+            [f"• {r[1]} — {r[2].strftime('%Y-%m-%d %H:%M')}" for r in reminders])
     else:
         reply = "📭 У тебе немає активних нагадувань."
     await message.answer(reply)
 
+
 @dp.message(Command("видалити_нагадування"))
-async def delete_reminder(message: types.Message):
+async def delete_reminder(message: Message):
     uid = message.from_user.id
     args = message.text.split(maxsplit=1)
     if len(args) == 2:
@@ -58,8 +65,9 @@ async def delete_reminder(message: types.Message):
     else:
         await message.answer("❗ Приклад: /видалити_нагадування купити молоко")
 
-@dp.message()
-async def handle_message(message: types.Message):
+
+@dp.message(F.text)
+async def handle_message(message: Message):
     text = message.text.lower()
     uid = message.from_user.id
 
@@ -91,7 +99,8 @@ async def handle_message(message: types.Message):
 
     else:
         reply = await get_llm_response(message.text)
-        await message.answer(reply, parse_mode=ParseMode.MARKDOWN)
+        await message.answer(reply)
+
 
 async def notify_reminders():
     due = await get_due_reminders()
@@ -101,11 +110,13 @@ async def notify_reminders():
         except:
             pass
 
+
 async def main():
     await init_db()
     scheduler.add_job(notify_reminders, 'interval', minutes=1)
     scheduler.start()
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
