@@ -22,6 +22,8 @@ async def init_db():
     """)
     await conn.close()
 
+# ======== ФАКТИ =========
+
 async def save_fact(uid: int, key: str, value: str):
     conn = await asyncpg.connect(DATABASE_URL)
     await conn.execute(
@@ -46,6 +48,8 @@ async def delete_fact(uid: int, key: str):
         uid, key
     )
     await conn.close()
+
+# ======== НАГАДУВАННЯ =========
 
 async def save_reminder(uid: int, text: str, time: datetime):
     conn = await asyncpg.connect(DATABASE_URL)
