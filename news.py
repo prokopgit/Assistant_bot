@@ -16,8 +16,6 @@ async def get_funny_archaeo_news():
             item = random.choice(headlines[:5])
             title = item.text.strip()
             link = item.get("href")
-            if not link.startswith("http"):
-                link = "https://www.archaeology.org" + link
 
             funny_intro = random.choice([
                 "📯 Поки ти копав яму — сталося ось що:",
