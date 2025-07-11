@@ -1,6 +1,6 @@
 import asyncpg
 import config
-from datetime import datetime, timezone
+from datetime import datetime
 
 DATABASE_URL = config.DATABASE_URL
 
@@ -21,6 +21,8 @@ async def init_db():
         );
     """)
     await conn.close()
+
+# ======== ФАКТИ =========
 
 async def save_fact(uid: int, key: str, value: str):
     conn = await asyncpg.connect(DATABASE_URL)
@@ -47,6 +49,8 @@ async def delete_fact(uid: int, key: str):
     )
     await conn.close()
 
+# ======== НАГАДУВАННЯ =========
+
 async def save_reminder(uid: int, text: str, time: datetime):
     conn = await asyncpg.connect(DATABASE_URL)
     await conn.execute(
@@ -57,7 +61,7 @@ async def save_reminder(uid: int, text: str, time: datetime):
 
 async def get_due_reminders():
     conn = await asyncpg.connect(DATABASE_URL)
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()  # ← Фікс тут
     rows = await conn.fetch(
         "SELECT uid, text FROM reminders WHERE time <= $1",
         now
