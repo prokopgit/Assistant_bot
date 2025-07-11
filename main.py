@@ -1,5 +1,4 @@
 import asyncio
-import random
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart, Command
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -10,8 +9,8 @@ from database import (
     get_user_reminders, delete_user_reminder
 )
 from utils import parse_fact_command, parse_reminder_command, is_obscene, archaeologist_reply
-import config
 from news import get_funny_archaeo_news
+import config
 
 bot = Bot(token=config.TELEGRAM_TOKEN)
 dp = Dispatcher()
@@ -34,8 +33,7 @@ async def help_cmd(message: types.Message):
         "• Запам’ятай, моя знахідка — римська монета\n"
         "• Нагадай перевірити прибор о 18:00\n"
         "• /нагадування — список\n"
-        "• /видалити_нагадування [текст]\n"
-        "• /анекдот — розповім щось з поля"
+        "• /видалити_нагадування [текст]"
     )
 
 @dp.message(Command("нагадування"))
@@ -62,32 +60,22 @@ async def delete_reminder(message: types.Message):
     else:
         await message.answer("⚠️ Приклад: /видалити_нагадування купити батарейки")
 
-@dp.message(Command("анекдот"))
-async def joke_cmd(message: types.Message):
-    jokes = [
-        "🤣 Археолог питає колегу: «Що це за уламок?» — «Це твоя кар’єра, якщо ще раз лопатою вдариш артефакт!»",
-        "😂 Йде археолог полем і каже: «Чую, тут історія лежить!»",
-        "😆 Археологи — єдині, хто радіє, коли щось викопують з минулого!",
-        "🏺 Хто рано встає — той до бронзової доби докопається.",
-        "💩 Відкопали якусь яму, а там — ще глибша яма. Класика!"
-    ]
-    await message.answer(random.choice(jokes))
-
 @dp.message()
 async def handle_message(message: types.Message):
-    text = message.text.lower()
+    text = message.text.strip()
     uid = message.from_user.id
 
     if is_obscene(text):
         await message.answer(archaeologist_reply(text, rude=True))
         return
 
-    if text.startswith("запам’ятай") or text.startswith("запамятай"):
+    lowered = text.lower()
+    if lowered.startswith("запам’ятай") or lowered.startswith("запамятай"):
         key, value = parse_fact_command(text)
         await save_fact(uid, key, value)
         await message.answer(f"🧠 Запам’ятав: {key} — {value}")
 
-    elif text.startswith("що ти знаєш") or text.startswith("як мене") or text.startswith("яка моя"):
+    elif any(start in lowered for start in ["що ти знаєш", "як мене", "яка моя", "що я казав", "що про"]):
         key = text.split("про")[-1].strip()
         value = await get_fact(uid, key)
         if value:
@@ -95,18 +83,18 @@ async def handle_message(message: types.Message):
         else:
             await message.answer("🤷‍♂️ Не пам’ятаю такого.")
 
-    elif text.startswith("забудь"):
+    elif lowered.startswith("забудь"):
         key = text.split("про")[-1].strip()
         await delete_fact(uid, key)
         await message.answer(f"🧹 Все, забув про '{key}'.")
 
-    elif text.startswith("нагадай"):
-        rem = await parse_reminder_command(message.text, uid)
+    elif lowered.startswith("нагадай"):
+        rem = parse_reminder_command(text, uid)
         if rem:
             await save_reminder(*rem)
             await message.answer("⏰ Готово, нагадаю як домовлялись.")
         else:
-            await message.answer("⛔ Не зміг розпізнати час, попробуй ще раз.")
+            await message.answer("⛔ Не зміг розпізнати час. Спробуй в форматі 'Нагадай подзвонити о 14:00'.")
 
     else:
         reply = await get_llm_response(text)
@@ -121,8 +109,11 @@ async def notify_reminders():
             pass
 
 async def post_news_to_channel():
-    news = await get_funny_archaeo_news()
-    await bot.send_message("@vseprokop", news, parse_mode="HTML")
+    try:
+        news = await get_funny_archaeo_news()
+        await bot.send_message("@vseprokop", news, parse_mode="HTML")
+    except Exception as e:
+        print(f"❗ Помилка при надсиланні новин: {e}")
 
 async def main():
     await init_db()
