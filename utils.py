@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import re
+import unicodedata
 
 BAD_WORDS = ["хуй", "пізд", "єб", "бляд", "сука", "нах", "fuck", "shit", "урод", "мудак", "тварь"]
 
@@ -29,7 +30,8 @@ def parse_reminder_command(text, uid):
         return None
 
 def is_obscene(text):
-    return any(bad in text.lower() for bad in BAD_WORDS)
+    normalized = unicodedata.normalize("NFKD", text.lower())
+    return any(bad in normalized for bad in BAD_WORDS)
 
 def archaeologist_reply(text, rude=False):
     if rude:
