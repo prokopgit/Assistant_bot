@@ -9,8 +9,8 @@ from database import (
     get_user_reminders, delete_user_reminder
 )
 from utils import parse_fact_command, parse_reminder_command, is_obscene, archaeologist_reply
-from news import get_funny_archaeo_news
 import config
+from news import get_funny_archaeo_news
 
 bot = Bot(token=config.TELEGRAM_TOKEN)
 dp = Dispatcher()
@@ -18,7 +18,10 @@ scheduler = AsyncIOScheduler()
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
-    await message.answer("🏺 Привіт! Я твій археолог-друг і колега. Запитай мене що завгодно або напиши /help — розкажу, що вмію!")
+    await message.answer(
+        "🏺 Я археолог зі стажем, знавець старовини, експерт з пошуку і очищення артефактів, добрий і веселий чувак. "
+        "Запитай — не пошкодуєш!"
+    )
 
 @dp.message(Command("help"))
 async def help_cmd(message: types.Message):
@@ -27,11 +30,14 @@ async def help_cmd(message: types.Message):
         "• Відповідати на запитання (з гумором і досвідом)\n"
         "• Запам’ятовувати факти про тебе\n"
         "• Нагадувати про важливе\n"
-        "• Розповідати байки, анекдоти й новини з археології\n"
-        "• Щодня о 9:00 — кидаю свіжі архео-новини в @vseprokop\n\n"
+        "• Підказувати круті локації для пошуку\n"
+        "• Публікувати щоденні історії та анекдоти в @vseprokop\n"
+        "• Проводити опитування і вікторини\n"
+        "• Консультувати по металошукачах\n\n"
         "💬 Приклади:\n"
         "• Запам’ятай, моя знахідка — римська монета\n"
         "• Нагадай перевірити прибор о 18:00\n"
+        "• Дай координати для пошуку\n"
         "• /нагадування — список\n"
         "• /видалити_нагадування [текст]"
     )
@@ -62,20 +68,19 @@ async def delete_reminder(message: types.Message):
 
 @dp.message()
 async def handle_message(message: types.Message):
-    text = message.text.strip()
+    text = message.text.lower()
     uid = message.from_user.id
 
     if is_obscene(text):
         await message.answer(archaeologist_reply(text, rude=True))
         return
 
-    lowered = text.lower()
-    if lowered.startswith("запам’ятай") or lowered.startswith("запамятай"):
+    if text.startswith("запам’ятай") or text.startswith("запамятай"):
         key, value = parse_fact_command(text)
         await save_fact(uid, key, value)
         await message.answer(f"🧠 Запам’ятав: {key} — {value}")
 
-    elif any(start in lowered for start in ["що ти знаєш", "як мене", "яка моя", "що я казав", "що про"]):
+    elif text.startswith("що ти знаєш") or text.startswith("як мене") or text.startswith("яка моя"):
         key = text.split("про")[-1].strip()
         value = await get_fact(uid, key)
         if value:
@@ -83,18 +88,23 @@ async def handle_message(message: types.Message):
         else:
             await message.answer("🤷‍♂️ Не пам’ятаю такого.")
 
-    elif lowered.startswith("забудь"):
+    elif text.startswith("забудь"):
         key = text.split("про")[-1].strip()
         await delete_fact(uid, key)
         await message.answer(f"🧹 Все, забув про '{key}'.")
 
-    elif lowered.startswith("нагадай"):
-        rem = parse_reminder_command(text, uid)
+    elif text.startswith("нагадай"):
+        rem = await parse_reminder_command(message.text, uid)
         if rem:
             await save_reminder(*rem)
             await message.answer("⏰ Готово, нагадаю як домовлялись.")
         else:
-            await message.answer("⛔ Не зміг розпізнати час. Спробуй в форматі 'Нагадай подзвонити о 14:00'.")
+            await message.answer("⛔ Не зміг розпізнати час, попробуй ще раз.")
+
+    elif text.startswith("дай координати"):
+        # Приклад простої відповіді з координатами (реалізація для прикладу)
+        coord = "49.8397° N, 24.0297° E"  # Львів, наприклад
+        await message.answer(f"🗺️ З моїм досвідом, ось координати з високою ймовірністю знахідок: {coord}")
 
     else:
         reply = await get_llm_response(text)
@@ -109,11 +119,8 @@ async def notify_reminders():
             pass
 
 async def post_news_to_channel():
-    try:
-        news = await get_funny_archaeo_news()
-        await bot.send_message("@vseprokop", news, parse_mode="HTML")
-    except Exception as e:
-        print(f"❗ Помилка при надсиланні новин: {e}")
+    news = await get_funny_archaeo_news()
+    await bot.send_message("@vseprokop", news, parse_mode="HTML")
 
 async def main():
     await init_db()
