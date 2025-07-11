@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import re
 
-BAD_WORDS = ["хуй", "пізд", "єб", "бляд", "сука", "нах", "fuck", "shit"]
+BAD_WORDS = ["хуй", "пізд", "єб", "бляд", "сука", "нах", "fuck", "shit", "урод", "мудак", "тварь"]
 
 def parse_fact_command(text):
     text = text.replace("запам’ятай", "").replace("запамятай", "").strip()
@@ -29,9 +29,9 @@ def parse_reminder_command(text, uid):
         return None
 
 def is_obscene(text):
-    return any(bad in text for bad in BAD_WORDS)
+    return any(bad in text.lower() for bad in BAD_WORDS)
 
-def taksyst_reply(text, rude=False):
+def archaeologist_reply(text, rude=False):
     if rude:
-        return "😡 А ти чо такий дерзкий? Я ж з повагою, а ти матюкаєшся!"
-    return f"🚖 Та шо я тобі скажу... {text.capitalize()}, як кажуть, як на маршрутці у годину пік."
+        return "🤬 Слухай, не плутай мене з якоюсь амфорою! Ще раз так — і розкажу всім про твої 'знахідки'."
+    return f"🏺 Та було в мене таке на розкопках... {text.capitalize()}. Теж цікаво, як твій перший шурф!"
