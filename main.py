@@ -8,8 +8,9 @@ from database import (
     save_reminder, get_due_reminders,
     get_user_reminders, delete_user_reminder
 )
-from utils import parse_fact_command, parse_reminder_command
+from utils import parse_fact_command, parse_reminder_command, is_obscene, taksyst_reply
 import config
+from news import get_funny_archaeo_news
 
 bot = Bot(token=config.TELEGRAM_TOKEN)
 dp = Dispatcher()
@@ -17,21 +18,21 @@ scheduler = AsyncIOScheduler()
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
-    await message.answer("👋 Привіт! Я твій персональний асистент. Напиши /help, щоб дізнатися, що я вмію.")
+    await message.answer("👋 Привіт! Я твій персональний таксист-асистент. Напиши /help, щоб дізнатися, що я вмію.")
 
 @dp.message(Command("help"))
 async def help_cmd(message: types.Message):
     await message.answer(
-        "🧠 Я вмію:\n"
-        "• Відповідати на питання\n"
+        "🚕 Я можу:\n"
+        "• Відповідати на питання як GPT (тільки з характером)\n"
         "• Запам’ятовувати факти\n"
-        "• Нагадувати про важливе\n\n"
+        "• Нагадувати про важливе\n"
+        "• Щодня о 9:00 постити архео-новини в @vseprokop\n\n"
         "💬 Спробуй:\n"
-        "• Запам’ятай, моє ім’я — Дмитро\n"
-        "• Нагадай купити молоко о 18:00\n"
-        "• Що ти знаєш про моє ім’я?\n"
+        "• Запам’ятай, моя хата — скраю\n"
+        "• Нагадай сплатити штраф о 14:00\n"
         "• /нагадування — список\n"
-        "• /видалити_нагадування [текст] — видалити"
+        "• /видалити_нагадування [текст]"
     )
 
 @dp.message(Command("нагадування"))
@@ -63,6 +64,10 @@ async def handle_message(message: types.Message):
     text = message.text.lower()
     uid = message.from_user.id
 
+    if is_obscene(text):
+        await message.answer(taksyst_reply(text, rude=True))
+        return
+
     if text.startswith("запам’ятай") or text.startswith("запамятай"):
         key, value = parse_fact_command(text)
         await save_fact(uid, key, value)
@@ -90,8 +95,8 @@ async def handle_message(message: types.Message):
             await message.answer("⚠️ Не вдалося розпізнати час для нагадування.")
 
     else:
-        reply = await get_llm_response(message.text)
-        await message.answer(reply)
+        reply = await get_llm_response(text)
+        await message.answer(taksyst_reply(reply))
 
 async def notify_reminders():
     due = await get_due_reminders()
@@ -101,9 +106,14 @@ async def notify_reminders():
         except:
             pass
 
+async def post_news_to_channel():
+    news = await get_funny_archaeo_news()
+    await bot.send_message("@vseprokop", news, parse_mode="HTML")
+
 async def main():
     await init_db()
     scheduler.add_job(notify_reminders, 'interval', minutes=1)
+    scheduler.add_job(post_news_to_channel, 'cron', hour=9, minute=0)
     scheduler.start()
     await dp.start_polling(bot)
 
