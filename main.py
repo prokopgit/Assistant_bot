@@ -18,28 +18,23 @@ scheduler = AsyncIOScheduler()
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
-    await message.answer(
-        "🏺 Я археолог зі стажем, знавець старовини, експерт з пошуку і очищення артефактів, добрий і веселий чувак. "
-        "Запитай — не пошкодуєш!"
-    )
+    await message.answer("🏺 Йо! Я твій брат по копанню. Якщо шось треба — пиши, підкажу, поржу, нагадаю, розвеселю!")
 
 @dp.message(Command("help"))
 async def help_cmd(message: types.Message):
     await message.answer(
-        "🧭 Я вмію:\n"
-        "• Відповідати на запитання (з гумором і досвідом)\n"
-        "• Запам’ятовувати факти про тебе\n"
-        "• Нагадувати про важливе\n"
-        "• Підказувати круті локації для пошуку\n"
-        "• Публікувати щоденні історії та анекдоти в @vseprokop\n"
-        "• Проводити опитування і вікторини\n"
-        "• Консультувати по металошукачах\n\n"
+        "🧭 Я можу:\n"
+        "• Відповідати як знавець пошуку артефактів\n"
+        "• Порадити локацію, де точно є знахідки\n"
+        "• Запам’ятовувати твої факти\n"
+        "• Робити нагадування\n"
+        "• Кидати історії і смішнявки в @vseprokop\n"
+        "• Консультувати по налаштуванням металошукачів\n\n"
         "💬 Приклади:\n"
-        "• Запам’ятай, моя знахідка — римська монета\n"
-        "• Нагадай перевірити прибор о 18:00\n"
-        "• Дай координати для пошуку\n"
-        "• /нагадування — список\n"
-        "• /видалити_нагадування [текст]"
+        "• Запам’ятай, я знайшов фібула — скіфська\n"
+        "• Нагадай зарядити акуми о 19:30\n"
+        "• /нагадування — покажи всі\n"
+        "• /видалити_нагадування перевірити котушку"
     )
 
 @dp.message(Command("нагадування"))
@@ -47,10 +42,10 @@ async def list_reminders(message: types.Message):
     uid = message.from_user.id
     reminders = await get_user_reminders(uid)
     if reminders:
-        reply = "📜 Ось твої нагадування:\n" + "\n".join(
+        reply = "📜 Глянь, що нагадайки тримають:\n" + "\n".join(
             [f"• {r[1]} — {r[2].strftime('%Y-%m-%d %H:%M')}" for r in reminders])
     else:
-        reply = "🔕 У тебе наразі немає нагадувань."
+        reply = "🔕 Наразі нема нічого, шо б напрягало 😉"
     await message.answer(reply)
 
 @dp.message(Command("видалити_нагадування"))
@@ -60,11 +55,11 @@ async def delete_reminder(message: types.Message):
     if len(args) == 2:
         deleted = await delete_user_reminder(uid, args[1])
         if deleted:
-            await message.answer("🗑️ Нагадування видалено.")
+            await message.answer("🗑️ Готово, викинув з голови.")
         else:
-            await message.answer("❗ Такого не знайшов.")
+            await message.answer("❗ Нема такого нагадування, дружище.")
     else:
-        await message.answer("⚠️ Приклад: /видалити_нагадування купити батарейки")
+        await message.answer("⚠️ Формат такий: /видалити_нагадування [текст]")
 
 @dp.message()
 async def handle_message(message: types.Message):
@@ -78,33 +73,28 @@ async def handle_message(message: types.Message):
     if text.startswith("запам’ятай") or text.startswith("запамятай"):
         key, value = parse_fact_command(text)
         await save_fact(uid, key, value)
-        await message.answer(f"🧠 Запам’ятав: {key} — {value}")
+        await message.answer(f"🧠 Та чітко, тримаю в голові: {key} — {value}")
 
     elif text.startswith("що ти знаєш") or text.startswith("як мене") or text.startswith("яка моя"):
         key = text.split("про")[-1].strip()
         value = await get_fact(uid, key)
         if value:
-            await message.answer(f"📌 У тебе є таке: {key} — {value}")
+            await message.answer(f"📌 Є, дивись: {key} — {value}")
         else:
-            await message.answer("🤷‍♂️ Не пам’ятаю такого.")
+            await message.answer("🤷‍♂️ Не бачив таке, шеф.")
 
     elif text.startswith("забудь"):
         key = text.split("про")[-1].strip()
         await delete_fact(uid, key)
-        await message.answer(f"🧹 Все, забув про '{key}'.")
+        await message.answer(f"🧹 Все, забув. Як невдалу знахідку.")
 
     elif text.startswith("нагадай"):
         rem = await parse_reminder_command(message.text, uid)
         if rem:
             await save_reminder(*rem)
-            await message.answer("⏰ Готово, нагадаю як домовлялись.")
+            await message.answer("⏰ Прийнято! Нагадаю точно.")
         else:
-            await message.answer("⛔ Не зміг розпізнати час, попробуй ще раз.")
-
-    elif text.startswith("дай координати"):
-        # Приклад простої відповіді з координатами (реалізація для прикладу)
-        coord = "49.8397° N, 24.0297° E"  # Львів, наприклад
-        await message.answer(f"🗺️ З моїм досвідом, ось координати з високою ймовірністю знахідок: {coord}")
+            await message.answer("⛔ Щось з часом не те, спробуй так: 'нагадай зробити щось о 14:00'")
 
     else:
         reply = await get_llm_response(text)
@@ -114,7 +104,7 @@ async def notify_reminders():
     due = await get_due_reminders()
     for uid, text in due:
         try:
-            await bot.send_message(uid, f"🔔 Нагадую: {text}")
+            await bot.send_message(uid, f"🔔 Напомінок прилетів: {text}")
         except:
             pass
 
@@ -123,7 +113,12 @@ async def post_news_to_channel():
     await bot.send_message("@vseprokop", news, parse_mode="HTML")
 
 async def main():
-    await init_db()
+    try:
+        await init_db()
+    except Exception as e:
+        print(f"[DB INIT ERROR] ❌ {e}")
+        return
+
     await bot.delete_webhook(drop_pending_updates=True)
     scheduler.add_job(notify_reminders, 'interval', minutes=1)
     scheduler.add_job(post_news_to_channel, 'cron', hour=9, minute=0)
