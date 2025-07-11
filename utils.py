@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 import re
 
+BAD_WORDS = ["хуй", "пізд", "єб", "бляд", "сука", "нах", "fuck", "shit"]
+
 def parse_fact_command(text):
     text = text.replace("запам’ятай", "").replace("запамятай", "").strip()
     if " — " in text:
@@ -25,3 +27,11 @@ def parse_reminder_command(text, uid):
             return uid, task, dt
     except:
         return None
+
+def is_obscene(text):
+    return any(bad in text for bad in BAD_WORDS)
+
+def taksyst_reply(text, rude=False):
+    if rude:
+        return "😡 А ти чо такий дерзкий? Я ж з повагою, а ти матюкаєшся!"
+    return f"🚖 Та шо я тобі скажу... {text.capitalize()}, як кажуть, як на маршрутці у годину пік."
