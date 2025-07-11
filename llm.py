@@ -18,4 +18,4 @@ async def get_llm_response(prompt: str) -> str:
             data = response.json()
             return data["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:
-        return f"🤖 GPT шось завис... Помилка: {e}"
+        return f"🤖 Вибач, зараз не можу відповісти. Помилка: {e}"
