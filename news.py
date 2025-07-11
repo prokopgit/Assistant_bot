@@ -1,29 +1,31 @@
 import httpx
 from bs4 import BeautifulSoup
 import random
+import re
 
 async def get_funny_archaeo_news():
     try:
+        url = "https://www.archaeology.org/news"  # або інше джерело
         async with httpx.AsyncClient() as client:
-            r = await client.get("https://www.livescience.com/archaeology")
+            r = await client.get(url, timeout=10)
             soup = BeautifulSoup(r.text, "html.parser")
-            articles = soup.select("article h3 a")
+            headlines = soup.select("h3 a")
 
-            if not articles:
-                return "😴 Сьогодні археологи нічого не знайшли, всі копають мовчки."
+            if not headlines:
+                return "🦴 Сьогодні в новинах — тиша, як у кургані. Всі в полі."
 
-            article = random.choice(articles)
-            title = article.get_text(strip=True)
-            link = article["href"]
-            if not link.startswith("http"):
-                link = "https://www.livescience.com" + link
+            item = random.choice(headlines[:5])
+            title = item.text.strip()
+            link = item.get("href")
 
-            # Стиль таксиста
-            return (
-                f"🗿 <b>Архео-новина від дяді Моргана</b>\n\n"
-                f"Ото щойно викопали щось цікаве: <b>{title}</b>.\n"
-                f"Я б сам туди поїхав із совком і пивком, якби не спина...\n"
-                f"👉 <a href='{link}'>Читайте самі, бо я вже в дорозі!</a>"
-            )
+            funny_intro = random.choice([
+                "📯 Поки ти копав яму — сталося ось що:",
+                "🔍 Археологи не сплять! Ось новинка:",
+                "🤣 Знайшли щось цікавіше за твої тапки:",
+                "🏺 Прямо з розкопок — свіжа байка:",
+            ])
+
+            return f"{funny_intro}\n\n<b>{title}</b>\n<a href='{link}'>Читати далі</a>"
+
     except Exception as e:
-        return f"⚠️ Новин не буде — щось пішло не так: {e}"
+        return f"⚠️ Шось пішло не так з новинами: {e}"
