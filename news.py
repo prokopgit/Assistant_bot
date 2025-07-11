@@ -1,11 +1,10 @@
 import httpx
 from bs4 import BeautifulSoup
 import random
-import re
 
 async def get_funny_archaeo_news():
     try:
-        url = "https://www.archaeology.org/news"  # або інше джерело
+        url = "https://www.archaeology.org/news"
         async with httpx.AsyncClient() as client:
             r = await client.get(url, timeout=10)
             soup = BeautifulSoup(r.text, "html.parser")
@@ -17,6 +16,8 @@ async def get_funny_archaeo_news():
             item = random.choice(headlines[:5])
             title = item.text.strip()
             link = item.get("href")
+            if not link.startswith("http"):
+                link = "https://www.archaeology.org" + link
 
             funny_intro = random.choice([
                 "📯 Поки ти копав яму — сталося ось що:",
