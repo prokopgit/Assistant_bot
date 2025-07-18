@@ -1,4 +1,3 @@
-# Файл: main.py
 import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart, Command
@@ -9,32 +8,12 @@ from database import (
     save_reminder, get_due_reminders,
     get_user_reminders, delete_user_reminder
 )
-from utils import parse_fact_command, parse_reminder_command, get_fallback_response
+from utils import parse_fact_command, parse_reminder_command
 import config
-import random
-import logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 bot = Bot(token=config.TELEGRAM_TOKEN)
 dp = Dispatcher()
 scheduler = AsyncIOScheduler()
-
-async def post_daily_content():
-    if not config.CHANNEL_ID:
-        return
-        
-    topics = [
-        "Цікавий факт дня:",
-        "Питання для обговорення:",
-        "Новина технологій:"
-    ]
-    try:
-        response = await get_llm_response(f"Придумай короткий {random.choice(topics)}")
-        await bot.send_message(config.CHANNEL_ID, response)
-    except Exception as e:
-        logger.error(f"Failed to post daily content: {e}")
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
@@ -45,26 +24,15 @@ async def help_cmd(message: types.Message):
     await message.answer(
         "🧠 Я вмію:\n"
         "• Відповідати на питання\n"
-        "• Запам'ятовувати факти\n"
-        "• Нагадувати про важливе\n"
-        "• Створювати обговорення\n\n"
+        "• Запам’ятовувати факти\n"
+        "• Нагадувати про важливе\n\n"
         "💬 Спробуй:\n"
-        "• Запам'ятай, моє ім'я — Дмитро\n"
+        "• Запам’ятай, моє ім’я — Дмитро\n"
         "• Нагадай купити молоко о 18:00\n"
-        "• Що ти знаєш про моє ім'я?\n"
-        "• /обговорення — нові теми\n"
+        "• Що ти знаєш про моє ім’я?\n"
         "• /нагадування — список\n"
         "• /видалити_нагадування [текст] — видалити"
     )
-
-@dp.message(Command("обговорення"))
-async def start_discussion(message: types.Message):
-    try:
-        topics = await get_llm_response("Придумай 3 теми для обговорення в чаті")
-        await message.answer(f"💬 Давайте обговоримо:\n{topics}")
-    except Exception as e:
-        logger.error(f"Discussion error: {e}")
-        await message.answer("Не вдалося створити теми. Спробуйте пізніше.")
 
 @dp.message(Command("нагадування"))
 async def list_reminders(message: types.Message):
@@ -95,10 +63,10 @@ async def handle_message(message: types.Message):
     text = message.text.lower()
     uid = message.from_user.id
 
-    if text.startswith("запам'ятай") or text.startswith("запамятай"):
+    if text.startswith("запам’ятай") or text.startswith("запамятай"):
         key, value = parse_fact_command(text)
         await save_fact(uid, key, value)
-        await message.answer(f"✅ Запам'ятав: {key} — {value}")
+        await message.answer(f"✅ Запам’ятав: {key} — {value}")
 
     elif text.startswith("що ти знаєш") or text.startswith("як мене") or text.startswith("яка моя"):
         key = text.split("про")[-1].strip()
@@ -130,13 +98,12 @@ async def notify_reminders():
     for uid, text in due:
         try:
             await bot.send_message(uid, f"🔔 Нагадую: {text}")
-        except Exception as e:
-            logger.error(f"Reminder error for {uid}: {e}")
+        except:
+            pass
 
 async def main():
     await init_db()
     scheduler.add_job(notify_reminders, 'interval', minutes=1)
-    scheduler.add_job(post_daily_content, 'interval', hours=6)
     scheduler.start()
     await dp.start_polling(bot)
 
