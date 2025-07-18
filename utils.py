@@ -1,10 +1,27 @@
+# Файл: utils.py
 from datetime import datetime, timedelta
 import re
+import random
 
-BAD_WORDS = ["хуй", "пізд", "єб", "бляд", "сука", "нах", "fuck", "shit", "урод", "мудак", "тварь"]
+FALLBACK_RESPONSES = [
+    "Це цікаве питання, дайте мені хвилинку подумати...",
+    "Зараз перевірю інформацію...",
+    "Можливо, варто обговорити це детальніше?",
+    "Що ви самі думаєте з цього приводу?"
+]
+
+def get_fallback_response(prompt: str) -> str:
+    prompt_lower = prompt.lower()
+    if any(w in prompt_lower for w in ["привіт", "хай", "hello"]):
+        return "Привіт! Як справи?"
+    elif "нагадування" in prompt_lower:
+        return "Ви можете керувати нагадуваннями через команди /нагадування та /видалити_нагадування"
+    elif any(w in prompt_lower for w in ["як справи", "що нового"]):
+        return "Все добре! Готовий допомогти вам. А у вас що цікавого?"
+    return random.choice(FALLBACK_RESPONSES)
 
 def parse_fact_command(text):
-    text = text.replace("запам’ятай", "").replace("запамятай", "").strip()
+    text = text.replace("запам'ятай", "").replace("запамятай", "").strip()
     if " — " in text:
         key, value = text.split(" — ", 1)
     elif "-" in text:
@@ -27,12 +44,3 @@ def parse_reminder_command(text, uid):
             return uid, task, dt
     except:
         return None
-
-def is_obscene(text):
-    return any(bad in text.lower() for bad in BAD_WORDS)
-
-def archaeologist_reply(text, rude=False):
-    if rude:
-        return "🤬 Слухай, не плутай мене з якоюсь амфорою! Ще раз так — і розкажу всім про твої 'знахідки'."
-    # Стиль живий, дружній, без грубощів
-    return f"🏺 Та було в мене таке на розкопках... {text.capitalize()}. Теж цікаво, як твій перший шурф!"
